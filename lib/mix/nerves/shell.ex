@@ -19,6 +19,8 @@ defmodule Mix.Nerves.Shell do
             "#{command}"
         end
 
+    Application.stop(:logger)
+
     cmd_port =
       Port.open({:spawn, cmd}, [
         :binary,
@@ -29,15 +31,14 @@ defmodule Mix.Nerves.Shell do
 
     # Tell the script command about the terminal dimensions
     {w, h} = get_tty_geometry(stdin_port)
-
+    
     Port.command(cmd_port, """
     stty sane rows #{h} cols #{w}; stty -echo
     export PS1=""; export PS2=""
     start() {
-    echo -e "\\e[17F\\e[0J\\e[1;7m\n  Preparing Nerves Shell  \\e[0m"
-    echo -e "\\e]0;Nerves Shell\\a"
-    export PS1="\\e[1;7m Nerves \\e[0;1m \\W > \\e[0m"
-    export PS2="\\e[1;7m Nerves \\e[0;1m \\W ..\\e[0m"
+    echo -e "\\e[29F\\e[0J\n\\e[1;7m Preparing Nerves Shell \\e[0m"
+    export PS1="\\e[1;7m Nerves \\e[0;1m \\w >\\e[0m"
+    export PS2="\\e[1;7m Nerves \\e[0;1m \\w ..\\e[0m"
     #{Enum.join(initial_input, "\n")}
     stty echo
     }; start
