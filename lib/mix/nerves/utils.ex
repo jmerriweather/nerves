@@ -103,6 +103,9 @@ defmodule Mix.Nerves.Utils do
       if is_wsl?() do
         {win_path, wsl_path} = get_wsl_paths("fwup_devs.txt")
 
+        IO.puts("WINPATH: #{inspect win_path}")
+        IO.puts("WSLPATH: #{inspect wsl_path}")
+
         System.cmd("powershell.exe", [
           "-Command",
           "Start-Process powershell.exe -Verb runAs -Wait -ArgumentList \"fwup.exe -D | set-content -encoding UTF8 #{
@@ -199,12 +202,12 @@ defmodule Mix.Nerves.Utils do
   end
 
   def wsl_path_accessible?(file) do
-    if has_wslpath?() do
-      {_path, exitcode} = System.cmd("wslpath", ["-w", "-a", file], stderr_to_stdout: true)
-      exitcode == 0
-    else
+    # if has_wslpath?() do
+    #   {_path, exitcode} = System.cmd("wslpath", ["-w", "-a", file], stderr_to_stdout: true)
+    #   exitcode == 0
+    # else
       false
-    end
+    # end
   end
 
   def get_wsl_paths(file) do
@@ -216,16 +219,27 @@ defmodule Mix.Nerves.Utils do
       # -w    translate from a WSL path to a Windows path
       # -m    translate from a WSL path to a Windows path, with ‘/’ instead of ‘\\’
 
-      win_path = with {path, 0} <- System.cmd("wslpath", ["-w", "-a", file], stderr_to_stdout: true) do
+      wsl_fullpath = System.find_executable("wslpath")
+      wsl_fullpath_size = bit_size(wsl_fullpath)
+      absolute_filepath = Path.absname(file)
+      absolute_filepath_size = bit_size(absolute_filepath)
+
+      win_path = with {path, 0} <- System.cmd(wsl_fullpath, ["-w", "-a", absolute_filepath], stderr_to_stdout: true) do
         String.trim(path)
       else
-        _ -> ""
+        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} ->
+          absolute_filepath
+        _ ->
+          ""
       end
 
-      wsl_path = with {path, 0} <- System.cmd("wslpath", ["-u", "-a", file], stderr_to_stdout: true) do
+      wsl_path = with {path, 0} <- System.cmd(wsl_fullpath, ["-u", "-a", Path.absname(file)], stderr_to_stdout: true) do
         String.trim(path)
       else
-        _ -> ""
+        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} ->
+          absolute_filepath
+        _ ->
+          ""
       end
 
       {win_path, wsl_path}
