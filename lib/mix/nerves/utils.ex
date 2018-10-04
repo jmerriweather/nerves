@@ -202,12 +202,12 @@ defmodule Mix.Nerves.Utils do
   end
 
   def wsl_path_accessible?(file) do
-    # if has_wslpath?() do
-    #   {_path, exitcode} = System.cmd("wslpath", ["-w", "-a", file], stderr_to_stdout: true)
-    #   exitcode == 0
-    # else
+    if has_wslpath?() do
+      {_path, exitcode} = System.cmd("wslpath", ["-w", "-a", file], stderr_to_stdout: true)
+      exitcode == 0
+    else
       false
-    # end
+    end
   end
 
   def get_wsl_paths(file) do
@@ -227,19 +227,15 @@ defmodule Mix.Nerves.Utils do
       win_path = with {path, 0} <- System.cmd(wsl_fullpath, ["-w", "-a", absolute_filepath], stderr_to_stdout: true) do
         String.trim(path)
       else
-        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} ->
-          absolute_filepath
-        _ ->
-          ""
+        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} -> absolute_filepath
+        _ -> ""
       end
 
       wsl_path = with {path, 0} <- System.cmd(wsl_fullpath, ["-u", "-a", Path.absname(file)], stderr_to_stdout: true) do
         String.trim(path)
       else
-        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} ->
-          absolute_filepath
-        _ ->
-          ""
+        {<<_ :: size(wsl_fullpath_size), ": ", _ :: size(absolute_filepath_size), ": Invalid argument", _rest>>, 1} -> absolute_filepath
+        _ -> ""
       end
 
       {win_path, wsl_path}
